@@ -3,11 +3,12 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 interface Props {
     rows: number;
     cols: number;
+    setReset: Function;
 }
 
-function GameBoard({ rows, cols }: Props) {
+function GameBoard({ rows, cols, setReset }: Props) {
     const [_rows, _setRows] = useState(Array(rows).fill(0, 0, rows));
-    const [board, setBoard] = useState(Array(cols).fill(_rows, 0, rows));
+    const [board] = useState(Array(cols).fill(_rows, 0, rows));
     const [snake, setSnake] = useState([
         { x: 15, y: 5 },
         { x: 16, y: 5 },
@@ -17,33 +18,34 @@ function GameBoard({ rows, cols }: Props) {
         y: 14,
     });
     const direction = useRef('top');
-    const [turns, setTurns] = useState(0);
-
-    console.log('rendered!');
+    const [, setTurns] = useState(0);
 
     useEffect(() => {
         const timer = setInterval(() => moveTo(direction.current), 200);
         document.addEventListener('keydown', changeDirection);
-        return () => clearInterval(timer);
+        return () => {
+            clearInterval(timer);
+            document.removeEventListener('keydown', changeDirection);
+        };
     }, []);
 
     function changeDirection(evt: KeyboardEvent) {
-        if (evt.key === 'ArrowUp') {
+        if (evt.key === 'ArrowUp' || evt.key.toLowerCase() === 'w') {
             if (
                 !snake.find((v) => v.x === snake[0].x - 1 && v.y === snake[0].y)
             )
                 direction.current = 'top';
-        } else if (evt.key === 'ArrowRight') {
+        } else if (evt.key === 'ArrowRight' || evt.key.toLowerCase() === 'd') {
             if (
                 !snake.find((v) => v.x === snake[0].x && v.y === snake[0].y + 1)
             )
                 direction.current = 'right';
-        } else if (evt.key === 'ArrowDown') {
+        } else if (evt.key === 'ArrowDown' || evt.key.toLowerCase() === 's') {
             if (
                 !snake.find((v) => v.x === snake[0].x + 1 && v.y === snake[0].y)
             )
                 direction.current = 'bottom';
-        } else if (evt.key === 'ArrowLeft') {
+        } else if (evt.key === 'ArrowLeft' || evt.key.toLowerCase() === 'a') {
             if (
                 !snake.find((v) => v.x === snake[0].x && v.y === snake[0].y - 1)
             )
@@ -63,7 +65,17 @@ function GameBoard({ rows, cols }: Props) {
 
     function moveTo(direction: string) {
         let pop = false;
-        if (direction === 'top' && snake[0].x - 1 !== 0) {
+
+        if (
+            (direction === 'top' && snake[0].x === 0) ||
+            (direction === 'right' && snake[0].y === rows - 1) ||
+            (direction === 'bottom' && snake[0].x === cols - 1) ||
+            (direction === 'left' && snake[0].y === 0)
+        ) {
+            setReset((prev: boolean) => !prev);
+        }
+
+        if (direction === 'top' && snake[0].x !== 0) {
             if (
                 snake[0].x - 1 === apple.current.x &&
                 snake[0].y === apple.current.y
@@ -92,6 +104,7 @@ function GameBoard({ rows, cols }: Props) {
                 pop = true;
             setSnakePos(snake[0].x, snake[0].y - 1, pop);
         }
+
         setTurns((prev) => prev + 1);
     }
 
@@ -100,8 +113,6 @@ function GameBoard({ rows, cols }: Props) {
         const y = Math.floor(Math.random() * rows);
         apple.current = { x, y };
     }
-
-    function restartGame() {}
 
     function generateEyes() {
         if (direction.current === 'top') {
